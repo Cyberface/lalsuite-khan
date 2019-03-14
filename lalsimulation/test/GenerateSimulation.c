@@ -84,6 +84,8 @@ const char * usage =
 "                             IMRPhenomD\n"
 "                             IMRPhenomHM\n"
 "                             IMRPhenomPv2\n"
+"                             IMRPhenomPv3\n"
+"                             IMRPhenomPv3HM\n"
 "                             EOBNRv2\n"
 "                             EOBNRv2HM\n"
 "                             SEOBNRv1\n"
@@ -107,6 +109,8 @@ const char * usage =
 "                             IMRPhenomD\n"
 "                             IMRPhenomP\n"
 "                             IMRPhenomPv2\n"
+"                             IMRPhenomPv3\n"
+"                             IMRPhenomPv3HM\n"
 "                             EOBNRv2_ROM\n"
 "                             EOBNRv2HM_ROM\n"
 "                             SEOBNRv1_ROM_EffectiveSpin\n"
@@ -461,7 +465,7 @@ static int dump_TD(FILE *f, REAL8TimeSeries *hplus, REAL8TimeSeries *hcross) {
 
     fprintf(f, "# t hplus hcross\n");
     for (i=0; i < hplus->data->length; i++)
-        fprintf(f, "%25.16e %25.16e %25.16e\n", t0 + i * hplus->deltaT, 
+        fprintf(f, "%25.16e %25.16e %25.16e\n", t0 + i * hplus->deltaT,
                 hplus->data->data[i], hcross->data->data[i]);
     return 0;
 }

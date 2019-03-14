@@ -404,6 +404,10 @@ typedef enum tagApproximant {
    SEOBNRv4HM,	/**< Spin nonprecessing EOBNR model v4 with higher modes, PhysRevD.98.084028 [arXiv:1803.10701]
                      * @remarks Implemented in lalsimulation (time domain). */
    NRHybSur3dq8,        /**< Time domain, aligned-spin, higher modes, hybridized. Paper arxiv:1812.07865 */
+   IMRPhenomPv3,    /**< Frequency domain (generic spins) inspiral-merger-ringdown templates of Hannam et al., arXiv:1308.3271 [gr-qc]. Based on IMRPhenomD, arXiv:1508.07250 and arXiv:1508.07253. But updated the precession angles to use the ones in arXiv 1703.03967.
+                         * @remarks Implemented in lalsimulation (frequency domain).  */
+   IMRPhenomPv3HM,    /**< Frequency domain (generic spins) inspiral-merger-ringdown templates of XXX. Based on IMRPhenomHM arXiv:1708.00404. And the precession angles of IMRPhenomPv3 1809.10113 and arXiv 1703.03967.
+                       * @remarks Implemented in lalsimulation (frequency domain).  */
    NumApproximants,	/**< Number of elements in enum, useful for checking bounds */
  } Approximant;
 

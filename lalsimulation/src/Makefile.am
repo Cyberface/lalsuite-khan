@@ -162,7 +162,8 @@ pkginclude_HEADERS = \
 	LALSimulationVCSInfo.h \
 	LALSimulationVCSInfoHeader.h \
 	LALSimUniversalRelations.h \
-        LALSimInspiralEOS.h
+        LALSimInspiralEOS.h \
+	LALSimInspiralFDPrecAngles.h
 
 noinst_HEADERS = \
 	LALSimIMRSpinEOBHcapExactDerivativePrec_v3opt.c \
@@ -194,6 +195,7 @@ noinst_HEADERS = \
 	LALSimIMRPhenomHM.h \
 	LALSimIMRPhenomP.c \
 	LALSimIMRPhenomP.h \
+	LALSimIMRPhenomPv3HM.h \
 	LALSimIMRPhenomInternalUtils.h \
 	LALSimIMRSEOBNRROMUtilities.c \
 	LALSimIMRSEOBNRv4ROM_NRTidal.h \
@@ -231,7 +233,9 @@ noinst_HEADERS = \
 	LALSimNRTunedTides.h \
 	LALSimRingdownCW.h \
 	LALSimNRHybSurUtilities.h \
-	LALSimIMRNRHybSur3dq8.h
+	LALSimIMRNRHybSur3dq8.h \
+    LALSimInspiralFDPrecAngles_internals.c \
+    LALSimInspiralFDPrecAngles_internals.h
 
 
 lib_LTLIBRARIES = liblalsimulation.la
@@ -261,6 +265,7 @@ liblalsimulation_la_SOURCES = \
 	LALSimIMRPhenomD_NRTidal.c \
 	LALSimIMRPhenomHM.c \
 	LALSimIMRPhenomP.c \
+	LALSimIMRPhenomPv3HM.c \
 	LALSimIMRPhenomInternalUtils.c \
 	LALSimIMRPhenomUtils.c \
 	LALSimIMRPSpinInspiralRD.c \
@@ -321,8 +326,9 @@ liblalsimulation_la_SOURCES = \
 	LALSimNRHybSurUtilities.c \
 	LALSimIMRNRHybSur3dq8.c \
 	gsl_interpolation_integ_eval.h \
-	gsl_interpolation_steffen.c
-        
+	gsl_interpolation_steffen.c \
+	LALSimInspiralFDPrecAngles.c
+
 nodist_liblalsimulation_la_SOURCES = \
 	LALSimulationBuildInfoHeader.h \
 	LALSimulationVCSInfo.c \
