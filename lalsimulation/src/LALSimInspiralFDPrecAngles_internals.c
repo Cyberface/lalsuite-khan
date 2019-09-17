@@ -133,11 +133,60 @@ static int InitializeSystem(sysq* system, /**< [out] Pointer to sysq struct  */
     double c1_2 = system->c1_2;
     double c1_over_nu_2 = c_1_over_nu*c_1_over_nu;
 
-    const double Delta = sqrt((4.*c1_over_nu_2*one_p_q_sq - 8.*c_1_over_nu*q*(1.+q)*Seff - 4.*((1.-q_2)*(1.-q_2)*S1_norm_2-q_2*Seff_2))*(4.*c1_over_nu_2*q_2*one_p_q_sq - 8.*c_1_over_nu*q_2*(1.+q)*Seff - 4.*((1.-q_2)*(1.-q_2)*S2_norm_2-q_2*Seff_2)));
+    const double one_m_q2_2 = (1. - q_2) * (1. - q_2);
 
+    //eq.C3 (1703.03967) - note this is actually 2*\Delta
+    // The original line of code:
+    // const double Delta = sqrt((4.*c1_over_nu_2*one_p_q_sq - 8.*c_1_over_nu*q*(1.+q)*Seff - 4.*((1.-q_2)*(1.-q_2)*S1_norm_2-q_2*Seff_2))*(4.*c1_over_nu_2*q_2*one_p_q_sq - 8.*c_1_over_nu*q_2*(1.+q)*Seff - 4.*((1.-q_2)*(1.-q_2)*S2_norm_2-q_2*Seff_2)));
+
+    // This is my refactored version of the original line of code
+    const double Del1 = 4. * c1_over_nu_2 * one_p_q_sq;
+    const double Del2 = 8. * c_1_over_nu * q * (1. + q) * Seff;
+    const double Del3 = 4. * (one_m_q2_2 * S1_norm_2 - q_2 * Seff_2);
+    const double Del4 = 4. * c1_over_nu_2 * q_2 * one_p_q_sq;
+    const double Del5 = 8. * c_1_over_nu * q_2 * (1. + q) * Seff;
+    const double Del6 = 4. * (one_m_q2_2 * S2_norm_2 - q_2 * Seff_2);
+    const double Delta = sqrt((Del1 - Del2 - Del3) * (Del4 - Del5 - Del6));
+
+    // this block is what I get by implementing what's in the paper
+    // const double deltam_over_M_4 = deltam_over_M * deltam_over_M * deltam_over_M * deltam_over_M;
+    // const double Del1 = c1_2 * nu / q / deltam_over_M_4;
+    // const double Del2 = 2. * c_1 * nu_2 * nu * (1. + q) / q / deltam_over_M_4 * Seff;
+    // const double Del3 = nu_2 / deltam_over_M_4 * (deltam_over_M * deltam_over_M * S1_norm_2 - nu_2 * Seff_2);
+    // const double Del4 = c1_2 * nu_2 / deltam_over_M_4;
+    // const double Del5 = 2. * c_1 * nu_2 * nu * (1. + q) / deltam_over_M_4 * Seff;
+    // const double Del6 = nu_2 / deltam_over_M_4 * (deltam_over_M * deltam_over_M * S2_norm_2 - nu_2 * Seff_2);
+    // const double Delta = sqrt((Del1 - Del2 - Del3) * (Del4 - Del5 - Del6));
+
+    //this is g_0 in eq.51 (1703.03967)
     system->constants_u[0] = -c0;
-    system->constants_u[1] = 6.*Seff*nu/deltam_over_M/deltam_over_M - 3.*c_1_over_nu/deltam_over_M/deltam_over_M;
-    system->constants_u[2] = 3.*c2/c0 + 0.75*one_p_q_sq/one_m_q_4*(-20.*c1_over_nu_2*q_2*one_p_q_sq + 2.*(1.-q_2)*(1.-q_2)*(q*(2.+q)*S1_norm_2 + (1.+2.*q)*S2_norm_2 -2.*q*Save_square) + 2.*q_2*(7.+6.*q+7.*q_2)*2.*c_1_over_nu*Seff - 2.*q_2*(3.+4.*q+3.*q_2)*Seff_2 + q*Delta);
+    //eq.C1 (1703.03967)
+    system->constants_u[1] = (6.*Seff*nu - 3.*c_1_over_nu)/deltam_over_M/deltam_over_M;
+
+    // The original line of code:
+    // system->constants_u[2] = 3.*c2/c0 + 0.75*one_p_q_sq/one_m_q_4*(-20.*c1_over_nu_2*q_2*one_p_q_sq + 2.*(1.-q_2)*(1.-q_2)*(q*(2.+q)*S1_norm_2 + (1.+2.*q)*S2_norm_2 -2.*q*Save_square) + 2.*q_2*(7.+6.*q+7.*q_2)*2.*c_1_over_nu*Seff - 2.*q_2*(3.+4.*q+3.*q_2)*Seff_2 + q*Delta);
+
+    // This is my refactored version of the original line of code
+    const double u1 = 3. * c2 / c0;
+    const double u2 = 0.75 * one_p_q_sq / one_m_q_4;
+    const double u3 = -20. * c1_over_nu_2 * q_2 * one_p_q_sq;
+    const double u4 = 2. * one_m_q2_2 * (q * (2. + q) * S1_norm_2 + (1. + 2. * q) * S2_norm_2 - 2. * q * Save_square);
+    const double u5 = 2. * q_2 * (7. + 6. * q + 7. * q_2) * 2. * c_1_over_nu * Seff;
+    const double u6 = 2. * q_2 * (3. + 4. * q + 3. * q_2) * Seff_2;
+    const double u7 = q * Delta;
+    //eq.C2 (1703.03967)
+    system->constants_u[2] = u1 + u2*(u3 + u4 + u5 - u6 + u7);
+
+    // this block is what I get by implementing what's in the paper
+    // const double u1 = 3. * c2 / c0;
+    // const double u2 = 3. / 2. / nu_2 / nu;
+    // const double u3 = 2. * Delta;
+    // const double u4 = 2. * nu_2 / deltam_over_M / deltam_over_M * Save_square;
+    // const double u5 = 10. * nu * c1_2 / deltam_over_M / deltam_over_M / deltam_over_M / deltam_over_M;
+    // const double u6 = 2. * nu_2 / deltam_over_M / deltam_over_M / (1. - q) / (1. - q) * (7. + 6. * q + 7. * q_2) * c_1 * Seff;
+    // const double u7 = nu_2 * nu / deltam_over_M / deltam_over_M / (1. - q) / (1. - q) * (3. + 4. * q + 3. * q_2) * Seff_2;
+    // const double u8 = nu / (1. - q) / (1. - q) * (q * (2. + q) * S1_norm_2 + (1. + 2. * q) * S2_norm_2);
+    // system->constants_u[2] = u1 + u2*(u3 - u4 - u5 + u6 - u7 + u8);
 
     system->Ssqave = 0.5*(roots.z+roots.y);
     system->sqrtSsqave = sqrt(system->Ssqave);
@@ -279,15 +328,12 @@ In future please choose from [1,2,3,4,5,-1]. \n", ExpansionOrder);
     system->zeta_0 = 0.;
     system->zeta_0 = - zeta_of_xi(xi_0,xi0_2,system) - MScorrections.y;
 
-
-    // return system;
     return XLAL_SUCCESS;
 }
 
-/* *********************************************************************************/
-/* Internal function that computes phiz, zeta, and costhetaL at 3PN                */
-/* *********************************************************************************/
-
+/**
+ * Internal function that computes phiz, zeta, and costhetaL at 3PN
+ */
 UNUSED static vector compute_phiz_zeta_costhetaL3PN(const double xi, const sysq *system)
 {
     vector angles;
@@ -311,10 +357,9 @@ UNUSED static vector compute_phiz_zeta_costhetaL3PN(const double xi, const sysq 
     return angles;
 }
 
-/* *********************************************************************************/
-/* Internal function that computes phiz, zeta, and costhetaL at 2PN NonSpinning    */
-/* *********************************************************************************/
-
+/**
+ * Internal function that computes phiz, zeta, and costhetaL at 2PN NonSpinning
+ */
 UNUSED static vector compute_phiz_zeta_costhetaL2PNNonSpinning(const double xi, const sysq *system)
 {
     vector angles;
@@ -339,10 +384,9 @@ UNUSED static vector compute_phiz_zeta_costhetaL2PNNonSpinning(const double xi, 
     return angles;
 }
 
-/* *********************************************************************************/
-/* Internal function that computes phiz, zeta, and costhetaL at Newtonian order    */
-/* *********************************************************************************/
-
+/**
+ * Internal function that computes phiz, zeta, and costhetaL at Newtonian order
+ */
 UNUSED static vector compute_phiz_zeta_costhetaL(const double xi, const sysq *system)
 {
     vector angles;
@@ -364,10 +408,12 @@ UNUSED static vector compute_phiz_zeta_costhetaL(const double xi, const sysq *sy
     return angles;
 }
 
-/* *********************************************************************************/
-/* Internal function that computes the roots of Eq. 22 in arxiv:1703.03967         */
-/* *********************************************************************************/
-
+/**
+ * Internal function that computes the roots of Eq. 22 in arxiv:1703.03967
+ * out.x = A1 = S_{3}^2
+ * out.y = A2 = S_{-}^2
+ * out.z = A3 = S_{+}^2
+ */
 static vector Roots(const double L_norm, const double J_norm, const sysq *system)
 {
     vector out;
@@ -393,49 +439,39 @@ static vector Roots(const double L_norm, const double J_norm, const sysq *system
         out.y = ((*system).S0_norm)*((*system).S0_norm);
         out.z = out.y + 1e-9;
         /* The 1e-9 is a nudge because sometimes the azimuthal
-         * precesion angle has a term that makes it -inf.
+         * precession angle has a term that makes it -inf.
          * This small perturbation was to remedy these cases. */
     }
     else{
-//        if(acosarg>0){
-//            out.x = 2.*sqrtarg*cos(theta) - ((*system).onethird)*coeffs.x;
-//            out.y = 2.*sqrtarg*cos(theta - LAL_TWOPI*((*system).onethird)) - ((*system).onethird)*coeffs.x;
-//            out.z = 2.*sqrtarg*cos(theta - 2.*LAL_TWOPI*((*system).onethird)) - ((*system).onethird)*coeffs.x;
-//        }
-//        else{
-//            out.z = 2.*sqrtarg*cos(theta) - ((*system).onethird)*coeffs.x;
-//            out.y = 2.*sqrtarg*cos(theta - LAL_TWOPI*((*system).onethird)) - ((*system).onethird)*coeffs.x;
-//            out.x = 2.*sqrtarg*cos(theta - 2.*LAL_TWOPI*((*system).onethird)) - ((*system).onethird)*coeffs.x;
-//        }
-
         out.z = 2.*sqrtarg*cos(theta) - ((*system).onethird)*coeffs.x;
         out.y = 2.*sqrtarg*cos(theta - LAL_TWOPI*((*system).onethird)) - ((*system).onethird)*coeffs.x;
         out.x = 2.*sqrtarg*cos(theta - 2.*LAL_TWOPI*((*system).onethird)) - ((*system).onethird)*coeffs.x;
 
         A3 = fmax(fmax(out.x,out.y),out.z);
         A1 = fmin(fmin(out.x,out.y),out.z);
-        if((A3 - out.z) > 0 && (A1 - out.z) < 0) A2 = out.z;
-        else if((A3 - out.x) > 0 && (A1 - out.x) < 0) A2 = out.x;
-        else A2 = out.y;
 
-        /* A1 = S_{3}
-         * A2 = S_{-}
-         * A3 = S_{+}
-         * in  https://arxiv.org/pdf/1703.03967.pdf */
+        if ((A3 - out.z) > 0 && (A1 - out.z) < 0)
+            A2 = out.z;
+        else if ((A3 - out.x) > 0 && (A1 - out.x) < 0)
+            A2 = out.x;
+        else
+            A2 = out.y;
+
         out.x = A1;
         out.y = A2;
         out.z = A3;
 
-
     }
-    //printf("2 %13.6e %13.6e %13.6e\n", out.x, out.y, out.z);
     return out;
 }
 
-/* *********************************************************************************/
-/* Internal function that computes the coefficients of Eq. 22 in arxiv:1703.03967  */
-/* *********************************************************************************/
-
+/**
+ * Internal function that computes the B,C,D coefficients of Eq. 21 in arxiv:1703.03967
+ * The expressions are given in Appendix B.
+ * B coefficient = eq. B2
+ * C coefficient = eq. B3
+ * D coefficient = eq. B4
+ */
 static vector BCDcoeff(const double L_norm, const double J_norm, const sysq *system)
 {
     vector out;
@@ -556,26 +592,50 @@ static double costhetaL(const double J_norm, const double L_norm, const double S
     return out;
 }
 
-
-/* *********************************************************************************/
-/* Internal function that returns the phase of the magnitude of S                  */
-/* *********************************************************************************/
-
+/**
+ * Internal function that returns the phase of the magnitude of S
+ * given by equation 51 in arxiv:1703.03967
+ */
 static double u_of_xi(const double xi, const double xi_2, const sysq *system)
 {
+
+    /*
+    dictionary from code variables to paper symbols arxiv:1703.03967
+    (*system).deltam_over_M = (m1-m2)/(m1+m2)
+    (*system).constants_u[0] = $-g_0$ in eq. 51. Where g_0 is given in eq. A1.
+    xi corresponds to v so
+    1./xi_2/xi corresponds to the $v^{-3}$ factor
+    (*system).constants_u[1] = $\psi_1$ in eq. 51, given in eq. C1
+    (*system).constants_u[2] = $\psi_2$ in eq. 51, given in eq. C2
+    */
+
     return 0.75*((*system).deltam_over_M)*(*system).constants_u[0]/xi_2/xi*(1. + xi*((*system).constants_u[1] + xi*((*system).constants_u[2])));
 }
 
-/* *********************************************************************************/
-/* Internal function that returns the derivative of the phase of the magnitude of S*/
-/* *********************************************************************************/
-
+/**
+ * Internal function that returns the derivative of the phase of the magnitude of S
+ * given by equation 24 in arxiv:1703.03967
+ */
 static double psidot(const double xi, const double xi_2, const vector roots, const sysq *system)
 {
     const double xi_3 = xi_2*xi;
     const double xi_6 = xi_3*xi_3;
 
-    return 0.75/sqrt((*system).nu)*(1.-(*system).Seff*xi)*xi_6*sqrt(roots.z-roots.x);
+    /*
+    dictionary from code variables to paper symbols arxiv:1703.03967
+    roots.z = S_+^2 as computed in the 'Roots' function
+    roots.x = S_3^2 as computed in the 'Roots' function
+    (*system).nu = symmetric mass-ratio
+    (*system).Seff = "$\xi$" (eq. 7) i.e. the effective spin,
+    which is NOT the same as the first argument to this function which is
+    confusingly also called 'xi'
+    xi and xi_6 are the v and v^6 variables in eq. B1 (in appendix B)
+
+    the numerical factor is 0.75 which comes from a factor of 3/2 in eq.B1
+    and a factor of 1/2 in eq. 24
+    */
+
+    return -0.75/sqrt((*system).nu)*(1.-(*system).Seff*xi)*xi_6*sqrt(roots.z-roots.x);
 }
 
 
@@ -657,10 +717,10 @@ static vector computeMScorrections (const double xi, const double xi_2, const do
 
     double L3, L4;
     if(n3 == 1) L3 = 0;
-    else L3 = -fabs((c4*d0*(twod0_d2+sqt)-c2*d0*(d2_twod4-sqt)-c0*(twod0d4-d2_d4*(d2-sqt)))/(den))*(sqtn3/(n3-1.)*(atanu - atan(sqtn3*tanu)))/psdot;
+    else L3 = fabs((c4*d0*(twod0_d2+sqt)-c2*d0*(d2_twod4-sqt)-c0*(twod0d4-d2_d4*(d2-sqt)))/(den))*(sqtn3/(n3-1.)*(atanu - atan(sqtn3*tanu)))/psdot;
 
     if(n4 == 1) L4 = 0;
-    else L4 = -fabs((-c4*d0*(twod0_d2-sqt)+c2*d0*(d2_twod4+sqt)-c0*(-twod0d4+d2_d4*(d2+sqt))))/(den)*(sqtn4/(n4-1.)*(atanu - atan(sqtn4*tanu)))/psdot;
+    else L4 = fabs((-c4*d0*(twod0_d2-sqt)+c2*d0*(d2_twod4+sqt)-c0*(-twod0d4+d2_d4*(d2+sqt))))/(den)*(sqtn4/(n4-1.)*(atanu - atan(sqtn4*tanu)))/psdot;
 
     out.x = L3+L4;
     if (out.x != out.x) out.x=0;
