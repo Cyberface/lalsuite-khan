@@ -341,6 +341,7 @@ In future please choose from [1,2,3,4,5,-1]. \n", ExpansionOrder);
     double m, B, volumeellement;
     int sign_num;
 
+    // I think 'constant_of_S' is the "$\psi_0$" term in equation 51 (1703.03967)
     if(fabs(roots.y-roots.z)<1.e-5) system->constant_of_S = 0;
     else{
         m = sqrt((roots.y - roots.z)/(roots.x - roots.z));
@@ -752,7 +753,7 @@ static vector computeMScorrections (const double xi, const double xi_2, const do
     const double d2 = d_return.y; //eq. B10 in 1703.03967
     const double d4 = d_return.z; //eq. B11 in 1703.03967
 
-    //eq. B20 in 1703.03967
+    //"s_d" in the paper: eq. B20 in 1703.03967
     const double sqt = sqrt(fabs(d2 * d2 - 4. * d0 * d4));
 
     //related to eq. F20 in 1703.03967
@@ -780,13 +781,19 @@ static vector computeMScorrections (const double xi, const double xi_2, const do
     const double psdot = psidot(xi,xi_2,roots,system);
 
     double L3, L4;
-    //L3 is the first term in eq. 67 in 1703.03967
-    //L4 is the second term in eq. 67 in 1703.03967
-    if(n3 == 1) L3 = 0;
-    else L3 = fabs((c4*d0*(twod0_d2+sqt)-c2*d0*(d2_twod4-sqt)-c0*(twod0d4-d2_d4*(d2-sqt)))/(den))*(sqtn3/(n3-1.)*(atanu - atan(sqtn3*tanu)))/psdot;
+    //L3 is XX (1703.03967)
+    if (n3 == 1){
+        L3 = 0;
+    } else {
+        L3 = fabs((c4 * d0 * (twod0_d2 + sqt) - c2 * d0 * (d2_twod4 - sqt) - c0 * (twod0d4 - d2_d4 * (d2 - sqt))) / (den)) * (sqtn3 / (n3 - 1.) * (atanu - atan(sqtn3 * tanu))) / psdot;
+    }
 
-    if(n4 == 1) L4 = 0;
-    else L4 = fabs((-c4*d0*(twod0_d2-sqt)+c2*d0*(d2_twod4+sqt)-c0*(-twod0d4+d2_d4*(d2+sqt))))/(den)*(sqtn4/(n4-1.)*(atanu - atan(sqtn4*tanu)))/psdot;
+    //L4 is XX (1703.03967)
+    if (n4 == 1){
+        L4 = 0;
+    } else {
+        L4 = fabs((-c4 * d0 * (twod0_d2 - sqt) + c2 * d0 * (d2_twod4 + sqt) - c0 * (-twod0d4 + d2_d4 * (d2 + sqt)))) / (den) * (sqtn4 / (n4 - 1.) * (atanu - atan(sqtn4 * tanu))) / psdot;
+    }
 
     out.x = L3+L4;
     if (out.x != out.x) out.x=0;
