@@ -78,6 +78,7 @@ static int InitializeSystem(sysq* system, /**< [out] Pointer to sysq struct  */
     system->dot2n = DotProd(S2_0,Lhat_0)/S2_norm;
     system->dot12 = DotProd(S1_0,S2_0);
 
+    //eq.7 (1703.03967)
     system->Seff = ((system->dot1)/m1 +(system->dot2)/m2)*M;
 
     const vector S_0 = Sum(S1_0,S2_0);
@@ -116,15 +117,21 @@ static int InitializeSystem(sysq* system, /**< [out] Pointer to sysq struct  */
     const double a2_2 = a2*a2;
 
     //these constants are used in TaylorT2 where domega/dt is expressed as an inverse polynomial
+    //eq.A1 (1703.03967)
     const double c0 = 1./a0;
+    //eq.A2 (1703.03967)
     const double c2 = -a2/a0_2;
+    //eq.A3 (1703.03967)
     const double c3 = -a3/a0_2;
+    //eq.A4 (1703.03967)
     const double c4 = (a2_2 - a0*a4)/a0_3;
+    //eq.A5 (1703.03967)
     const double c5 = (2.*a2*a3 - a0*a5)/a0_3;
 
     system->nu_4 = nu_2*nu_2;
     const double nu_4 = system->nu_4;
 
+    //eq.41 (1703.03967)
     system->c_1 =0.5*(J_0_norm*J_0_norm - L_0_norm*L_0_norm - Save_square)/L_0_norm*nu;
     double c_1 = system->c_1;
     system->c_1_over_nu = system->c_1/nu;
@@ -188,21 +195,29 @@ static int InitializeSystem(sysq* system, /**< [out] Pointer to sysq struct  */
     // const double u8 = nu / (1. - q) / (1. - q) * (q * (2. + q) * S1_norm_2 + (1. + 2. * q) * S2_norm_2);
     // system->constants_u[2] = u1 + u2*(u3 - u4 - u5 + u6 - u7 + u8);
 
+    //eq.45 (1703.03967)
     system->Ssqave = 0.5*(roots.z+roots.y);
     system->sqrtSsqave = sqrt(system->Ssqave);
 
-
+    //eq.D1 (1703.03967)
     const double Rm = roots.z - roots.y;
     const double Rm_2 = Rm*Rm;
+    //eq.D2 (1703.03967)
     const double cp = roots.z*nu_2 - c1_2;
+    //eq.D3 (1703.03967)
     const double cm = cp-Rm*nu_2;
+    //difference of spin norm squared used in eq.D6 (1703.03967)
     const double S0m = S1_norm_2 - S2_norm_2;
     const double cpcm = fabs(cp*cm);
     const double sqrt_cpcm = sqrt(cpcm);
 
+    //eq.D4 (1703.03967)
     const double A1t = 0.5+0.75/nu;//xi^6
+    //eq.D5 (1703.03967)
     const double A2t = -0.75*Seff/nu;//xi^7
+    //eq.E3, called $D_2$ in paper (1703.03967)
     const double A1ave = (cp-sqrt_cpcm)/nu_2 ;
+    //eq.E4, called $D_4$ in paper (1703.03967)
     const double Bave = -0.5*Rm*sqrt_cpcm/nu_2 - cp/nu_4*(sqrt_cpcm-cp);
 
     const double aw = (-3.*(1. + q)/q*(2.*(1. + q)*nu_2*Seff*c_1 - (1. + q)*c1_2 + (1. - q)*nu_2*S0m));
@@ -211,9 +226,13 @@ static int InitializeSystem(sysq* system, /**< [out] Pointer to sysq struct  */
     const double hw = -2*(2*A1ave - Rm)*c_1;
     const double fw = Rm*A1ave-Bave-0.25*Rm_2;
 
+    //eq.D6 (1703.03967)
     const double ad = aw/dw;
+    //eq.XX (1703.03967)
     const double hd = hw/dw;
+    //eq.D7 (1703.03967)
     const double cd = cw/dw;
+    //eq.XX (1703.03967)
     const double fd = fw/dw;
 
     const double hd_2 = hd*hd;
@@ -229,11 +248,17 @@ static int InitializeSystem(sysq* system, /**< [out] Pointer to sysq struct  */
     const double cdhd = cd*hd;
     const double cdhd_2 = cd*hd_2;
 
+    //eq.D10 (1703.03967)
     double Omegaz0 = A1t + ad;
+    //eq.D11 (1703.03967)
     double Omegaz1 = A2t - ad*Seff - adhd;
+    //eq.D12 (1703.03967)
     double Omegaz2 = cd - adfd + adhd_2 + adhd*Seff;
+    //eq.D13 (1703.03967)
     double Omegaz3 = (adfd - cd - adhd_2)*Seff + 2*adfdhd - adhd_3 - cdhd;
+    //eq.D14 (1703.03967)
     double Omegaz4 = -(2*adfdhd - adhd_3 - cdhd)*Seff + adfd*fd - cdfd + cdhd_2 - 3*adfdhd_2 + adhd_4;
+    //eq.D15 (1703.03967)
     double Omegaz5 = -(adfd*fd - cdfd + cdhd_2 - 3*adfdhd_2 + adhd_4)*Seff + hd*(2*cdfd - 3*adfd*fd - cdhd_2 + 4*adfdhd_2 - adhd_4);
 
 
@@ -244,27 +269,45 @@ static int InitializeSystem(sysq* system, /**< [out] Pointer to sysq struct  */
         "Omegaz5 = %.16f which is larger than expected. Not generating a waveform here.\n",
         Omegaz5);
 
+    //eq.D16 (1703.03967), note that "c0" in the code is "$g_0$" in the paper and likewise for the other "c's" and "g's"
     system->constants_phiz[0] = 3.*Omegaz0*c0;
+    //eq.D17 (1703.03967)
     system->constants_phiz[1] = 3.*Omegaz1*c0;
+    //eq.D18 (1703.03967)
     system->constants_phiz[2] = 3.*(Omegaz2*c0 + Omegaz0*c2);
+    //eq.D19 (1703.03967)
     system->constants_phiz[3] = 3.*(Omegaz0*c3 + Omegaz1*c2 + Omegaz3*c0);
+    //eq.D20 (1703.03967)
     system->constants_phiz[4] = 3.*(Omegaz0*c4 + Omegaz1*c3 + Omegaz2*c2 + Omegaz4*c0);
+    //eq.D21 (1703.03967)
     system->constants_phiz[5] = 3.*(c5*Omegaz0 + c4*Omegaz1 + c3*Omegaz2 + c2*Omegaz3 + c0*Omegaz5);
 
     const double gw = 3./16./nu_2/nu*Rm_2*(c_1 - nu_2*Seff);
+    //eq.F18 (1703.03967)
     const double gd = gw/dw;
 
+    //eq.F17 (1703.03967)
     Omegaz5 += Omegaz4*c_1/nu_2 - fd*gd + gd*hd_2 + gd*hd*Seff;
+    //eq.F16 (1703.03967)
     Omegaz4 += Omegaz3*c_1/nu_2 - gd*hd - gd*Seff;
+    //eq.F15 (1703.03967)
     Omegaz3 += Omegaz2*c_1/nu_2 + gd;
+    //eq.F14 (1703.03967)
     Omegaz2 += Omegaz1*c_1/nu_2;
+    //eq.F13 (1703.03967)
     Omegaz1 += Omegaz0*c_1/nu_2;
 
+    //eq.F12 (1703.03967)
     system->constants_zeta[0] = 3.*Omegaz0*c0;
+    //eq.F13 (1703.03967)
     system->constants_zeta[1] = 3.*Omegaz1*c0;
+    //eq.F14 (1703.03967)
     system->constants_zeta[2] = 3.*(Omegaz2*c0 + Omegaz0*c2);
+    //eq.F15 (1703.03967)
     system->constants_zeta[3] = 3.*(Omegaz0*c3 + Omegaz1*c2 + Omegaz3*c0);
+    //eq.F16 (1703.03967)
     system->constants_zeta[4] = 3.*(Omegaz0*c4 + Omegaz1*c3 + Omegaz2*c2 + Omegaz4*c0);
+    //eq.F17 (1703.03967)
     system->constants_zeta[5] = 3.*(Omegaz0*c5 + Omegaz1*c4 + Omegaz2*c3 + Omegaz3*c2 + Omegaz5*c0);
 
     switch (ExpansionOrder)
@@ -487,19 +530,19 @@ static vector BCDcoeff(const double L_norm, const double J_norm, const sysq *sys
     return out;
 }
 
-/* *********************************************************************************/
-/* Internal function that returns the magnitude of J to Newtonian order            */
-/* *********************************************************************************/
-
+/**
+ * Internal function that returns the magnitude of J to Newtonian order
+ * Equation 41 (1703.03967)
+ */
 static double J_norm_of_xi(const double L_norm, const sysq *system)
 {
     return sqrt(L_norm*L_norm + 2.*L_norm*((*system).c_1_over_nu) + (*system).Ssqave);
 }
 
-/* *********************************************************************************/
-/* Internal function that returns the magnitude of S divided by GMsquare_over_c    */
-/* *********************************************************************************/
-
+/**
+ * Internal function that returns the magnitude of S divided by GMsquare_over_c
+ * Equation 23 (1703.03967)
+ */
 static double S_norm_of_xi(const double xi, const double xi_2, const vector roots, const sysq *system)
 {
     double sn, cn, dn, m, u;
@@ -514,14 +557,13 @@ static double S_norm_of_xi(const double xi, const double xi_2, const vector root
     return sqrt(S_norm_square_bar);
 }
 
-/* *********************************************************************************/
-/* Internal function that returns the magnitude of L divided by GMsquare_over_c to */
-/* 2PN order, non-spinning terms                                                   */
-/* *********************************************************************************/
-
+/**
+ * Internal function that returns the magnitude of L divided by GMsquare_over_c to
+ * 2PN order, non-spinning terms
+ * from 0605140 and Blanchet LRR and 1212.5520 Eq. 4.7
+ */
 static double L_norm_2PN_NonSpinning_of_xi(const double xi_2, const double L_norm, const sysq *system)
 {
-    //from 0605140 and Blanchet LRR and 1212.5520 Eq. 4.7
     return L_norm * \
                 (1. + xi_2 * \
                     ((*system).constants_L[0] \
@@ -529,22 +571,25 @@ static double L_norm_2PN_NonSpinning_of_xi(const double xi_2, const double L_nor
                 );
 }
 
-/* *********************************************************************************/
-/* Internal function that returns the magnitude of L divided by GMsquare_over_c to */
-/* 3PN order                                                                       */
-/* *********************************************************************************/
-
+/**
+ * Internal function that returns the magnitude of L divided by GMsquare_over_c to
+ * 3PN order
+ * from 0605140 and Blanchet LRR and 1212.5520 Eq. 4.7
+ */
 static double L_norm_3PN_of_xi(const double xi, const double xi_2, const double L_norm, const sysq *system)
 {
-    //from 0605140 and Blanchet LRR and 1212.5520 Eq. 4.7
     return L_norm*(1. + xi_2*((*system).constants_L[0] + xi*(*system).constants_L[1] + xi_2*((*system).constants_L[2] + xi*(*system).constants_L[3] + xi_2*((*system).constants_L[4]))));
 }
 
-/* *********************************************************************************/
-/* Internal function that returns a coefficient. I don't really remember           */
-/* what it is right now.                                                           */
-/* *********************************************************************************/
-
+/**
+ * Internal function that returns the coefficients
+ * "c_0", "c_2" and "c_4" from 1703.03967
+ * corresponding to equations
+ * B6, B7 and B8 in 1703.03967 respectively
+ * out.x = c_0
+ * out.y = c_2
+ * out.z = c_4
+ */
 static vector c(const double xi, const double xi_2, const double J_norm, const vector roots, const sysq *system)
 {
     const double xi_3 = xi_2*xi;
@@ -562,11 +607,15 @@ static vector c(const double xi, const double xi_2, const double J_norm, const v
     return out;
 }
 
-/* *********************************************************************************/
-/* Internal function that returns a coefficient. I don't really remember           */
-/* what it is right now.                                                           */
-/* *********************************************************************************/
-
+/**
+ * Internal function that returns the coefficients
+ * "d_0", "d_2" and "d_4" from 1703.03967
+ * corresponding to equations
+ * B9, B10 and B11 in 1703.03967 respectively
+ * out.x = d_0
+ * out.y = d_2
+ * out.z = d_4
+ */
 static vector d(const double L_norm, const double J_norm, const vector roots)
 {
     vector out;
@@ -578,10 +627,10 @@ static vector d(const double L_norm, const double J_norm, const vector roots)
     return out;
 }
 
-/* *********************************************************************************/
-/* Internal function that returns the cosine of the angle between L and J          */
-/* *********************************************************************************/
-
+/**
+ * Internal function that returns the cosine of the angle between L and J
+ * equation 8 1703.03967
+ */
 static double costhetaL(const double J_norm, const double L_norm, const double S_norm)
 {
     double out = 0.5*(J_norm*J_norm + L_norm*L_norm - S_norm*S_norm)/L_norm/J_norm;
@@ -638,65 +687,77 @@ static double psidot(const double xi, const double xi_2, const vector roots, con
     return -0.75/sqrt((*system).nu)*(1.-(*system).Seff*xi)*xi_6*sqrt(roots.z-roots.x);
 }
 
-
-/* *********************************************************************************/
-/* Internal function that returns phiz                                             */
-/* *********************************************************************************/
-
+/**
+ * Internal function that returns phiz
+ * equation 66 in 1703.03967
+ */
 static double phiz_of_xi(const double xi, const double xi_2, const double J_norm, const sysq *system)
 {
     const double inside_log1 = ((*system).c_1) + J_norm*((*system).nu)+((*system).nu_2)/xi;
+    // eq. D28 in 1703.03967
     const double log1 = log(fabs(inside_log1));
     const double inside_log2 = ((*system).c_1) + J_norm*((*system).sqrtSsqave)*xi + ((*system).Ssqave)*xi;
+    // eq. D29 in 1703.03967
     const double log2 = log(fabs(inside_log2));
 
+    // eq. D22 in 1703.03967
     const double phiz0 = J_norm*(0.5*((*system).c1_2)/((*system).nu_4) - 0.5*((*system).onethird)*((*system).c_1)/xi/((*system).nu_2) - ((*system).onethird)*((*system).Ssqave)/((*system).nu_2) - ((*system).onethird)/xi_2) - 0.5*((*system).c_1)*(((*system).c1_2)/((*system).nu_4) - ((*system).Ssqave)/((*system).nu_2))/((*system).nu)*log1;
+    // eq. D23 in 1703.03967
     const double phiz1 = -J_norm*0.5*(((*system).c_1)/((*system).nu_2) + 1./xi) + 0.5*(((*system).c1_2)/((*system).nu_2) - ((*system).Ssqave))/((*system).nu)*log1 ;
+    // eq. D24 in 1703.03967
     const double phiz2 = -J_norm + ((*system).sqrtSsqave)*log2 - ((*system).c_1)/((*system).nu)*log1;
+    // eq. D25 in 1703.03967
     const double phiz3 = J_norm*xi -((*system).nu)*log1 + ((*system).c_1)/((*system).sqrtSsqave)*log2;
+    // eq. D26 in 1703.03967
     const double phiz4 = J_norm*0.5*xi*(((*system).c_1)/((*system).Ssqave) + xi) - 0.5*(((*system).c1_2)/((*system).Ssqave) - ((*system).nu_2))/((*system).sqrtSsqave)*log2;
+    // eq. D27 in 1703.03967
     const double phiz5 = J_norm*xi*(-0.5*((*system).c1_2)/((*system).Ssqave)/((*system).Ssqave) + 0.5*((*system).onethird)*((*system).c_1)*xi/((*system).Ssqave) + ((*system).onethird)*(xi_2 + ((*system).nu_2)/((*system).Ssqave))) + 0.5*((*system).c_1)*(((*system).c1_2)/((*system).Ssqave) - ((*system).nu_2))/((*system).Ssqave)/((*system).sqrtSsqave)*log2;
 
+    // perform the summation in eq. 66 in 1703.03967
     double phizout = phiz0*(*system).constants_phiz[0] + phiz1*(*system).constants_phiz[1] + phiz2*(*system).constants_phiz[2] + phiz3*(*system).constants_phiz[3] + phiz4*(*system).constants_phiz[4] + phiz5*(*system).constants_phiz[5] + (*system).phiz_0;
     if (phizout!=phizout) phizout = 0;
 
     return phizout;
 }
 
-/* *********************************************************************************/
-/* Internal function that returns zeta                                             */
-/* *********************************************************************************/
-
+/**
+ * Internal function that returns zeta
+ * eq. F5 in 1703.03967
+ */
 static double zeta_of_xi(const double xi, const double xi_2, const sysq *system)
 {
     const double logxi = log(xi);
     const double xi_3 = xi_2*xi;
 
+    // summation in eq. F5 in 1703.03967
     double zetaout = ((*system).nu)*(-(*system).onethird*(*system).constants_zeta[0]/xi_3 - 0.5*(*system).constants_zeta[1]/xi_2 - (*system).constants_zeta[2]/xi + (*system).constants_zeta[3]*logxi + (*system).constants_zeta[4]*xi  + 0.5*(*system).constants_zeta[5]*xi_2) + (*system).zeta_0;
     if (zetaout!=zetaout) zetaout = 0;
 
     return zetaout;
 }
 
-/* *********************************************************************************/
-/* Internal function that computes the MS corrections for phiz and zeta            */
-/* *********************************************************************************/
-
+/**
+ * Internal function that computes the MS corrections for phiz and zeta
+ * eq. 67 (for phiz) and F19 (for zeta)
+ */
 static vector computeMScorrections (const double xi, const double xi_2, const double L_norm, const double J_norm, const vector roots, const sysq *system)
 {
     vector out;
     const vector c_return = c(xi,xi_2,J_norm,roots,system);
     const vector d_return = d(L_norm,J_norm,roots);
-    const double c0 = c_return.x;
-    const double c2 = c_return.y;
-    const double c4 = c_return.z;
-    const double d0 = d_return.x;
-    const double d2 = d_return.y;
-    const double d4 = d_return.z;
+    const double c0 = c_return.x; //eq. B6 in 1703.03967
+    const double c2 = c_return.y; //eq. B7 in 1703.03967
+    const double c4 = c_return.z; //eq. B8 in 1703.03967
+    const double d0 = d_return.x; //eq. B9 in 1703.03967
+    const double d2 = d_return.y; //eq. B10 in 1703.03967
+    const double d4 = d_return.z; //eq. B11 in 1703.03967
 
-    const double sqt = sqrt(fabs(d2*d2-4.*d0*d4));
+    //eq. B20 in 1703.03967
+    const double sqt = sqrt(fabs(d2 * d2 - 4. * d0 * d4));
 
+    //related to eq. F20 in 1703.03967
     const double Aa = 0.5*(J_norm/L_norm + L_norm/J_norm - roots.z/J_norm/L_norm);
+    //eq. F21 in 1703.03967
     const double Bb = 0.5*(roots.z - roots.y)/L_norm/J_norm;
 
     const double twod0_d2 = 2*d0+d2;
@@ -704,7 +765,10 @@ static vector computeMScorrections (const double xi, const double xi_2, const do
     const double d2_twod4 = d2+2.*d4;
     const double d2_d4 =d2+d4;
     const double d0_d2_d4 = d0+d2+d4;
+
+    // "n3" in the code is "n_c" in the paper eq. B16 in 1703.03967
     const double n3 = (2.*d0_d2_d4/(twod0_d2+sqt));
+    // "n4" in the code is "n_d" in the paper eq. B17 in 1703.03967
     const double n4 = ((twod0_d2+sqt)/(2.*d0));
     const double sqtn3 = sqrt(fabs(n3));
     const double sqtn4 = sqrt(fabs(n4));
@@ -716,6 +780,8 @@ static vector computeMScorrections (const double xi, const double xi_2, const do
     const double psdot = psidot(xi,xi_2,roots,system);
 
     double L3, L4;
+    //L3 is the first term in eq. 67 in 1703.03967
+    //L4 is the second term in eq. 67 in 1703.03967
     if(n3 == 1) L3 = 0;
     else L3 = fabs((c4*d0*(twod0_d2+sqt)-c2*d0*(d2_twod4-sqt)-c0*(twod0d4-d2_d4*(d2-sqt)))/(den))*(sqtn3/(n3-1.)*(atanu - atan(sqtn3*tanu)))/psdot;
 
@@ -725,6 +791,7 @@ static vector computeMScorrections (const double xi, const double xi_2, const do
     out.x = L3+L4;
     if (out.x != out.x) out.x=0;
 
+    // eq. F19 in 1703.03967
     out.y = Aa*out.x + 2.*Bb*d0*(L3/(sqt-d2)-L4/(sqt+d2));
     if (out.y != out.y) out.y=0;
 
@@ -734,55 +801,51 @@ static vector computeMScorrections (const double xi, const double xi_2, const do
 }
 
 
-/* *********************************************************************************/
-/* Internal function that computes the spin-orbit couplings                        */
-/* *********************************************************************************/
-
+/**
+ * Internal function that computes the spin-orbit couplings
+ */
 static double beta(const double a, const double b, const sysq *system)
 {
     return ((((*system).dot1)*(a + b*((*system).q))) + (((*system).dot2)*(a + b/((*system).q))));
 }
 
-/* *********************************************************************************/
-/* Internal function that computes the spin-spin couplings                         */
-/* *********************************************************************************/
-
+/**
+ * Internal function that computes the spin-spin couplings
+ */
 static double sigma(const double a, const double b, const sysq *system)
 {
     return (a*((*system).dot12) - b*((*system).dot1)*((*system).dot2))/((*system).nu);
 }
 
-/* *********************************************************************************/
-/* Internal function that computes the spin-spin couplings                         */
-/* *********************************************************************************/
-
+/**
+ * Internal function that computes the spin-spin couplings
+ */
 static double tau(const double a, const double b, const sysq *system)
 {
     return (((*system).q)*((*system).S1_norm_2*a - b*((*system).dot1)*((*system).dot1)) + ((*system).S2_norm_2*a - b*((*system).dot2)*((*system).dot2))/((*system).q))/((*system).nu);
 }
 
-/* *********************************************************************************/
-/* Internal function that returns the dot product of two vectors                   */
-/* *********************************************************************************/
-
+/**
+ * Internal function that returns the dot product of two vectors
+ */
 static double DotProd(const vector vec1, const vector vec2)
 {
     return vec1.x*vec2.x + vec1.y*vec2.y + vec1.z*vec2.z;
 }
 
-/* *********************************************************************************/
-/* Internal function that returns the norm of a vector                             */
-/* *********************************************************************************/
 
+/**
+ * Internal function that returns the norm of a vector
+ */
 static double Norm(const vector vec)
 {
     return sqrt(vec.x*vec.x + vec.y*vec.y + vec.z*vec.z);
 }
 
-/* *********************************************************************************/
-/* Internal function that calculates a vector fro its spherical components         */
-/* *********************************************************************************/
 
+/**
+ * Internal function that calculates a vector fro its spherical components
+ */
 static vector CreateSphere(const double r, const double th, const double ph)
 {
     vector out;
@@ -794,10 +857,9 @@ static vector CreateSphere(const double r, const double th, const double ph)
     return out;
 }
 
-/* *********************************************************************************/
-/* Internal function that returns the scalar product of a vector with a scalar     */
-/* *********************************************************************************/
-
+/**
+ * Internal function that returns the scalar product of a vector with a scalar
+ */
 static vector ScalarProd(double c, vector vec)
 {
     vector out;
@@ -808,10 +870,9 @@ static vector ScalarProd(double c, vector vec)
     return out;
 }
 
-/* *********************************************************************************/
-/* Internal function that returns the sum of two vectors                           */
-/* *********************************************************************************/
-
+/**
+ * Internal function that returns the sum of two vectors
+ */
 static vector Sum(vector vec1, vector vec2)
 {
     vector out;
@@ -822,11 +883,9 @@ static vector Sum(vector vec1, vector vec2)
     return out;
 }
 
-/* *********************************************************************************/
-/* Internal function that returns the cross product of two vectors                 */
-/* *********************************************************************************/
-
-
+/**
+ * Internal function that returns the cross product of two vectors
+ */
 static vector CrossProd(vector vec1, vector vec2)
 {
     vector out;
