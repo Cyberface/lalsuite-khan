@@ -349,6 +349,11 @@ int XLALSimIMRPhenomPv3HMComputeAlphaElements(IMRPhenomPv3HMAlphaStruct **p, UIN
 // IMRPhenomPv3HMWignderStruct *XLALSimIMRPhenomPv3HMComputeWignerdElements(UNUSED UINT4 ell, UNUSED INT4 mprime, UNUSED REAL8 b)
 int XLALSimIMRPhenomPv3HMComputeWignerdElements(IMRPhenomPv3HMWignderStruct **p, UNUSED UINT4 ell, UNUSED INT4 mprime, UNUSED REAL8 b)
 {
+    if (*p == NULL)
+    {
+        *p = XLALMalloc(sizeof(IMRPhenomPv3HMWignderStruct));
+    }
+
     REAL8 b2 = 2. * b;
     REAL8 cosb = cos(b);
     REAL8 cos2b = cos(b2);
