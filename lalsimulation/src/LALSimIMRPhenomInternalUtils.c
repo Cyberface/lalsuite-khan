@@ -320,3 +320,55 @@ double PhenomInternal_EradRational0815(double eta, double chi1, double chi2)
 
     return EradRational0815_s(eta, s);
 }
+
+/**
+ * helper function to multiple hlm with Ylm.
+ * Adapted from LALSimIMREOBNRv2HMROMUtilities.c
+ */
+int PhenomInternal_IMRPhenomHMFDAddMode(
+    COMPLEX16FrequencySeries *hptilde,
+    COMPLEX16FrequencySeries *hctilde,
+    COMPLEX16FrequencySeries *hlmtilde,
+    REAL8 theta,
+    REAL8 phi,
+    INT4 l,
+    INT4 m,
+    INT4 sym)
+{
+    COMPLEX16 Y;
+    UINT4 j;
+    COMPLEX16 hlm; /* helper variable that contain a single point of hlmtilde */
+
+    INT4 minus1l; /* (-1)^l */
+    if (l % 2)
+        minus1l = -1;
+    else
+        minus1l = 1;
+    if (sym)
+    { /* Equatorial symmetry: add in -m mode */
+        Y = XLALSpinWeightedSphericalHarmonic(theta, phi, -2, l, m);
+        COMPLEX16 Ymstar = conj(XLALSpinWeightedSphericalHarmonic(theta, phi, -2, l, -m));
+        COMPLEX16 factorp = 0.5 * (Y + minus1l * Ymstar);
+        COMPLEX16 factorc = -I * 0.5 * (Y - minus1l * Ymstar);
+        for (j = 0; j < hlmtilde->data->length; ++j)
+        {
+            hlm = (hlmtilde->data->data[j]);
+            hptilde->data->data[j] += factorp * hlm;
+            hctilde->data->data[j] += factorc * hlm;
+        }
+    }
+    else
+    { /* not adding in the -m mode */
+        Y = XLALSpinWeightedSphericalHarmonic(theta, phi, -2, l, m);
+        COMPLEX16 factorp = 0.5 * Y;
+        COMPLEX16 factorc = -I * factorp;
+        for (j = 0; j < hlmtilde->data->length; ++j)
+        {
+            hlm = (hlmtilde->data->data[j]);
+            hptilde->data->data[j] += factorp * hlm;
+            hctilde->data->data[j] += factorc * hlm;
+        }
+    }
+
+    return XLAL_SUCCESS;
+}

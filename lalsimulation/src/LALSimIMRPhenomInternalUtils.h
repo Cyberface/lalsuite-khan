@@ -18,6 +18,7 @@ extern "C" {
 #include <gsl/gsl_math.h>
 #include <lal/Sequence.h>
 #include <lal/LALSimIMR.h>
+#include <lal/SphericalHarmonics.h>
 
 // UNUSED void PhenomInternal_UtilsTest(void);
 
@@ -55,6 +56,16 @@ UNUSED double PhenomInternal_OrbAngMom3PN(
     const double s2z,
     const double f_0,
     const int ExpansionOrder);
+
+UNUSED int PhenomInternal_IMRPhenomHMFDAddMode(
+    COMPLEX16FrequencySeries *hptilde,
+    COMPLEX16FrequencySeries *hctilde,
+    COMPLEX16FrequencySeries *hlmtilde,
+    REAL8 theta,
+    REAL8 phi,
+    INT4 l,
+    INT4 m,
+    INT4 sym);
 
 #ifdef __cplusplus
 }

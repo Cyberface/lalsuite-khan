@@ -190,58 +190,6 @@ int PhenomHM_init_useful_powers(PhenomHMUsefulPowers *p, REAL8 number)
 }
 
 /**
- * helper function to multiple hlm with Ylm.
- * Adapted from LALSimIMREOBNRv2HMROMUtilities.c
- */
-int IMRPhenomHMFDAddMode(
-    COMPLEX16FrequencySeries *hptilde,
-    COMPLEX16FrequencySeries *hctilde,
-    COMPLEX16FrequencySeries *hlmtilde,
-    REAL8 theta,
-    REAL8 phi,
-    INT4 l,
-    INT4 m,
-    INT4 sym)
-{
-    COMPLEX16 Y;
-    UINT4 j;
-    COMPLEX16 hlm; /* helper variable that contain a single point of hlmtilde */
-
-    INT4 minus1l; /* (-1)^l */
-    if (l % 2)
-        minus1l = -1;
-    else
-        minus1l = 1;
-    if (sym)
-    { /* Equatorial symmetry: add in -m mode */
-        Y = XLALSpinWeightedSphericalHarmonic(theta, phi, -2, l, m);
-        COMPLEX16 Ymstar = conj(XLALSpinWeightedSphericalHarmonic(theta, phi, -2, l, -m));
-        COMPLEX16 factorp = 0.5 * (Y + minus1l * Ymstar);
-        COMPLEX16 factorc = I * 0.5 * (Y - minus1l * Ymstar);
-        for (j = 0; j < hlmtilde->data->length; ++j)
-        {
-            hlm = (hlmtilde->data->data[j]);
-            hptilde->data->data[j] += factorp * hlm;
-            hctilde->data->data[j] += factorc * hlm;
-        }
-    }
-    else
-    { /* not adding in the -m mode */
-        Y = XLALSpinWeightedSphericalHarmonic(theta, phi, -2, l, m);
-        COMPLEX16 factorp = 0.5 * Y;
-        COMPLEX16 factorc = I * factorp;
-        for (j = 0; j < hlmtilde->data->length; ++j)
-        {
-            hlm = (hlmtilde->data->data[j]);
-            hptilde->data->data[j] += factorp * hlm;
-            hctilde->data->data[j] += factorc * hlm;
-        }
-    }
-
-    return XLAL_SUCCESS;
-}
-
-/**
  * returns the real and imag parts of the complex ringdown frequency
  * for the (l,m) mode.
  */
@@ -1186,7 +1134,7 @@ tried to apply shift of -1.0/deltaF with deltaF=%g.",
             {
                 sym = 1;
             }
-            IMRPhenomHMFDAddMode(*hptilde, *hctilde, hlm, inclination, 0., ell, mm, sym); /* The phase \Phi is set to 0 - assumes phiRef is defined as half the phase of the 22 mode h22 */
+            PhenomInternal_IMRPhenomHMFDAddMode(*hptilde, *hctilde, hlm, inclination, 0., ell, mm, sym); /* The phase \Phi is set to 0 - assumes phiRef is defined as half the phase of the 22 mode h22 */
         }
     }
 
@@ -1199,7 +1147,7 @@ tried to apply shift of -1.0/deltaF with deltaF=%g.",
     for (size_t i = pHMFS->ind_min; i < pHMFS->ind_max; i++)
     {
         ((*hptilde)->data->data)[i] = ((*hptilde)->data->data)[i] * amp0;
-        ((*hctilde)->data->data)[i] = -1 * ((*hctilde)->data->data)[i] * amp0;
+        ((*hctilde)->data->data)[i] = ((*hctilde)->data->data)[i] * amp0;
     }
 
     /* cleanup */

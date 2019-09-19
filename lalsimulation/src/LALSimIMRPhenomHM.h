@@ -210,16 +210,6 @@ static int init_PhenomHM_Storage(
     const REAL8 phiRef    /**< orbital phase at f_ref */
 );
 
-int IMRPhenomHMFDAddMode(
-    COMPLEX16FrequencySeries *hptilde,
-    COMPLEX16FrequencySeries *hctilde,
-    COMPLEX16FrequencySeries *hlmtilde,
-    REAL8 theta,
-    REAL8 phi,
-    INT4 l,
-    INT4 m,
-    INT4 sym);
-
 double IMRPhenomHMTrd(
     REAL8 Mf,
     REAL8 Mf_RD_22,
