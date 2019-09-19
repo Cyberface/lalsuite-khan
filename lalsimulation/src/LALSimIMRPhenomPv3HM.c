@@ -242,9 +242,8 @@ UNUSED static int init_PhenomPv3HM_Storage(
     PhenomInternal_ComputeIMRPhenomPv3CartesianToPolar(&(p->chi1_theta), &(p->chi1_phi), &(p->chi1_mag), p->chi1x, p->chi1y, p->chi1z);
     PhenomInternal_ComputeIMRPhenomPv3CartesianToPolar(&(p->chi2_theta), &(p->chi2_phi), &(p->chi2_mag), p->chi2x, p->chi2y, p->chi2z);
 
-    /* compute precession angles at reference frequency */
+    /* Initialize precession angles */
     /* evaluating the angles at the reference frequency */
-    /* TODO: CHECK THIS */
     p->f_ref_Orb_Hz = 0.5 * p->f_ref; /* factor of 0.5 to go from GW to Orbital frequency */
     /* precompute everything needed to compute precession angles from LALSimInspiralFDPrecAngles.c */
     /* note that the reference frequency that you pass into InitializeSystem is the GW frequency */
@@ -260,33 +259,6 @@ UNUSED static int init_PhenomPv3HM_Storage(
                                cos(p->chi2_theta), p->chi2_phi, p->chi2_mag,
                                p->f_ref, ExpansionOrder);
     XLAL_CHECK(errcode == XLAL_SUCCESS, XLAL_EFUNC, "InitializeSystem failed");
-
-    /* convert from orbital frequency to PN parameter */
-    p->twopi_Msec = LAL_TWOPI * p->Msec;
-    vector angles;
-    /* xi uses the Orbital frequency */
-    REAL8 xi = pow((p->f_ref_Orb_Hz) * (p->twopi_Msec), pAngles->onethird);
-    angles = compute_phiz_zeta_costhetaL3PN(xi, pAngles);
-
-    /* checking for nans */
-    if (isnan(angles.x) || isnan(angles.y) || isnan(angles.z))
-    {
-        XLAL_PRINT_INFO("nan found:  angles.x = %.8f, angles.y = %.8f, angles.z = %.8f\n", angles.x, angles.y, angles.z);
-    }
-
-    p->alphaRef = angles.x;
-    p->epsilonRef = angles.y;
-
-    /* check for rounding errors in beta. cos(beta) can be > 1 due to rounding errors */
-    /* NOTE: Later I round this angle regardless if it is greater than one to.
-       See comment next to that bit of code. */
-    if (angles.z > 1.0)
-    {
-        PhenomInternal_nudge(&(angles.z), 1.0, 1e-6);
-    }
-
-    p->betaRef = acos(angles.z);
-
 
     return XLAL_SUCCESS;
 }
@@ -643,8 +615,8 @@ static int IMRPhenomPv3HM_Compute_a_b_e(REAL8 *alpha, REAL8 *beta, REAL8 *mprime
     xi = pow(f_mprime * twopi_Msec, pAngles->onethird);
     angles = compute_phiz_zeta_costhetaL3PN(xi, pAngles);
 
-    *alpha = angles.x - (pv3HM->alphaRef - pv3HM->alpha0);
-    REAL8 epsilon = angles.y - pv3HM->epsilonRef;
+    *alpha = angles.x + pv3HM->alpha0;
+    REAL8 epsilon = angles.y;
 
     *mprime_epsilon = mprime * epsilon;
 

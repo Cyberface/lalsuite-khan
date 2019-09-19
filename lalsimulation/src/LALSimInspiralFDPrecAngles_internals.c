@@ -25,7 +25,7 @@
  * InitializeSystem computes all the prefactors needed to generate precession angles
  * from Chatziioannou et al., arXiv 1703.03967 [gr-qc]
  */
-static int InitializeSystem(sysq* system, /**< [out] Pointer to sysq struct  */
+UNUSED static int InitializeSystem(sysq* system, /**< [out] Pointer to sysq struct  */
                              const double m1,  /**< Primary mass in SI (kg) */
                              const double m2,  /**< Secondary mass in SI (kg) */
                              const double mul, /**< Cosine of Polar angle of orbital angular momentum */
