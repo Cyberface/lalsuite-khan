@@ -170,6 +170,7 @@ UNUSED static int init_PhenomPv3HM_Storage(
 
     // We check if the systems is precessing because we skip angle
     // computation if this is the case.
+    p->PRECESSING = 0;
     if (S1x == 0. && S1y == 0. && S2x == 0. && S2y == 0.)
     {
         p->PRECESSING = 1; // This means the system is not precessing

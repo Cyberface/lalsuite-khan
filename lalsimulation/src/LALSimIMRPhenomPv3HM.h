@@ -23,7 +23,7 @@ extern "C"
  */
 typedef struct tagPhenomPv3HMStorage
 {
-    INT4 PRECESSING;   /**< integer to signify if system is precessing, 1 for false (not precessing), !=1 for true (precessing) */
+    INT4 PRECESSING;   /**< integer to signify if system is precessing, 1 for false (not precessing), 0 for true (precessing) */
     /* input parameters */
     REAL8 m1_SI;       /**< mass of primary in SI (kg) */
     REAL8 m2_SI;       /**< mass of secondary in SI (kg) */
