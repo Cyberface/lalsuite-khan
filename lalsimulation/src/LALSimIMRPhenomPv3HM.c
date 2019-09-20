@@ -168,6 +168,13 @@ UNUSED static int init_PhenomPv3HM_Storage(
     XLAL_CHECK(0 != p, XLAL_EFAULT, "p is NULL");
     XLAL_CHECK(0 != pAngles, XLAL_EFAULT, "pAngles is NULL");
 
+    // We check if the systems is precessing because we skip angle
+    // computation if this is the case.
+    if (S1x == 0. && S1y == 0. && S2x == 0. && S2y == 0.)
+    {
+        p->PRECESSING = 1; // This means the system is not precessing
+    }
+
     /* input parameters */
     p->m1_SI = m1_SI;
     p->m2_SI = m2_SI;
@@ -231,10 +238,6 @@ UNUSED static int init_PhenomPv3HM_Storage(
     XLAL_CHECK(errcode == XLAL_SUCCESS, XLAL_EFUNC, "XLALSimIMRPhenomPCalculateModelParametersFromSourceFrame failed");
 
     p->inclination = p->thetaJN;
-    /*NOTE: in order to be consistent with phenomHM in the aligned
-    spin limit setting p->phiRef = phiRef work
-    Setting p->phiRef = p->phi_aligned means there is a factor of PI/2
-    needed in phiRef to make phenomHM and PhenomPv3HM agree. */
 
     // printf("(p->zeta_polariz) = %.16f\n", (p->zeta_polariz));
 
@@ -242,23 +245,26 @@ UNUSED static int init_PhenomPv3HM_Storage(
     PhenomInternal_ComputeIMRPhenomPv3CartesianToPolar(&(p->chi1_theta), &(p->chi1_phi), &(p->chi1_mag), p->chi1x, p->chi1y, p->chi1z);
     PhenomInternal_ComputeIMRPhenomPv3CartesianToPolar(&(p->chi2_theta), &(p->chi2_phi), &(p->chi2_mag), p->chi2x, p->chi2y, p->chi2z);
 
-    /* Initialize precession angles */
-    /* evaluating the angles at the reference frequency */
-    p->f_ref_Orb_Hz = 0.5 * p->f_ref; /* factor of 0.5 to go from GW to Orbital frequency */
-    /* precompute everything needed to compute precession angles from LALSimInspiralFDPrecAngles.c */
-    /* note that the reference frequency that you pass into InitializeSystem is the GW frequency */
+    if (p->PRECESSING != 1) // precessing case. compute angles
+    {
+        /* Initialize precession angles */
+        /* evaluating the angles at the reference frequency */
+        p->f_ref_Orb_Hz = 0.5 * p->f_ref; /* factor of 0.5 to go from GW to Orbital frequency */
+        /* precompute everything needed to compute precession angles from LALSimInspiralFDPrecAngles.c */
+        /* note that the reference frequency that you pass into InitializeSystem is the GW frequency */
 
-    /* ExpansionOrder specifies how many terms in the PN expansion of the precession angles to use.
-     * In PhenomP3 we set this to 5, i.e. all but the highest order terms.
-     * */
-    int ExpansionOrder = 5;
-    errcode = InitializeSystem(pAngles,
-                               p->m1_SI, p->m2_SI,
-                               LHAT_COS_THETA, LHAT_PHI,
-                               cos(p->chi1_theta), p->chi1_phi, p->chi1_mag,
-                               cos(p->chi2_theta), p->chi2_phi, p->chi2_mag,
-                               p->f_ref, ExpansionOrder);
-    XLAL_CHECK(errcode == XLAL_SUCCESS, XLAL_EFUNC, "InitializeSystem failed");
+        /* ExpansionOrder specifies how many terms in the PN expansion of the precession angles to use.
+        * In PhenomP3 we set this to 5, i.e. all but the highest order terms.
+        * */
+        int ExpansionOrder = 5;
+        errcode = InitializeSystem(pAngles,
+                                p->m1_SI, p->m2_SI,
+                                LHAT_COS_THETA, LHAT_PHI,
+                                cos(p->chi1_theta), p->chi1_phi, p->chi1_mag,
+                                cos(p->chi2_theta), p->chi2_phi, p->chi2_mag,
+                                p->f_ref, ExpansionOrder);
+        XLAL_CHECK(errcode == XLAL_SUCCESS, XLAL_EFUNC, "InitializeSystem failed");
+    }
 
     return XLAL_SUCCESS;
 }
@@ -384,7 +390,7 @@ tried to apply shift of -1.0/deltaF with deltaF=%g.",
         chi2x,
         chi2y,
         chi2z,
-        phiRef,
+        pv3HM->phiRef,
         deltaF,
         f_ref,
         extraParams);
@@ -736,79 +742,97 @@ static int IMRPhenomPv3HM_Compute_Mode(
     sysq *pAngles,
     REAL8Sequence *freqs_seq)
 {
-    /*angle stuff*/
-    /* vector angles stores the precession angles */
 
-    const REAL8 Msec = Mtot_Msun * LAL_MTSUN_SI; /* Total mass in seconds */
-    const REAL8 twopi_Msec = LAL_TWOPI * Msec;
-    REAL8 fHz = 0.;
-
-    COMPLEX16 half_amp_eps;
-
-    COMPLEX16 Term1_sum = 0;
-    COMPLEX16 Term2_sum = 0;
-
-    UNUSED INT4 minus1l=0; /* (-1)^ell */
-    int ret_abe;
-    int retloop;
-
-    REAL8 alpha=0.;
-    REAL8 beta=0.;
-    REAL8 mprime_epsilon=0.;
-
-    // compute Ylms
-    IMRPhenomPv3HMYlmStruct *ylms = XLALSimIMRPhenomPv3HMComputeYlmElements(pv3HM->inclination, 0, ell);
-    // get non-prec mode
-    COMPLEX16FrequencySeries *hlmD = XLALSphHarmFrequencySeriesGetMode(*hlmsD, ell, mprime);
-    if (!(hlmD))
-        XLAL_ERROR(XLAL_EFUNC);
-
-    IMRPhenomPv3HMAlphaStruct *als = XLALMalloc(sizeof(IMRPhenomPv3HMAlphaStruct));
-    memset(als, 0, sizeof(IMRPhenomPv3HMAlphaStruct));
-
-    IMRPhenomPv3HMWignderStruct *wigs = XLALMalloc(sizeof(IMRPhenomPv3HMWignderStruct));
-    memset(wigs, 0, sizeof(IMRPhenomPv3HMWignderStruct));
-
-    int ret_als;
-    int ret_wigs;
-
-    // frequency loop
-    for (size_t j = 0; j < freqs_seq->length; ++j)
+    if (pv3HM->PRECESSING == 1) // non-precessing case. skip angles
     {
-        fHz = freqs_seq->data[j]; //for the angles
-        // compute alpha, beta and mprime*epsilon
-        ret_abe = IMRPhenomPv3HM_Compute_a_b_e(&alpha, &beta, &mprime_epsilon, fHz, mprime, twopi_Msec, pv3HM, pAngles);
-        XLAL_CHECK(
-            XLAL_SUCCESS == ret_abe,
-            XLAL_EFUNC,
-            "IMRPhenomPv3HM_Compute_a_b_e failed");
-        /* Precompute wigner-d elements */
-        ret_wigs = XLALSimIMRPhenomPv3HMComputeWignerdElements(&wigs, ell, mprime, -beta);
-        XLAL_CHECK(
-            XLAL_SUCCESS == ret_wigs,
-            XLAL_EFUNC,
-            "XLALSimIMRPhenomPv3HMComputeWignerdElements failed");
-        /* Precompute powers of e^{i m alpha} */
-        ret_als = XLALSimIMRPhenomPv3HMComputeAlphaElements(&als, ell, alpha);
-        XLAL_CHECK(
-            XLAL_SUCCESS == ret_als,
-            XLAL_EFUNC,
-            "XLALSimIMRPhenomPv3HMComputeAlphaElements failed");
-        retloop = IMRPhenomPv3HM_wigner_loop(&Term1_sum, &Term2_sum, ell, mprime, ylms, als, wigs);
-        XLAL_CHECK(
-            XLAL_SUCCESS == retloop,
-            XLAL_EFUNC,
-            "IMRPhenomPv3HM_wigner_loop failed");
+        INT4 sym; /* sym will decide whether to add the -m mode (when equatorial symmetry is present) */
+        COMPLEX16FrequencySeries *hlm = XLALSphHarmFrequencySeriesGetMode(*hlmsD, ell, mprime);
+        if (!(hlm))
+            XLAL_ERROR(XLAL_EFUNC);
 
-        COMPLEX16 hlmD_j = (hlmD->data->data[j]);
-        half_amp_eps = 0.5 * hlmD_j * cexp(-I * mprime_epsilon);
-        (*hptilde)->data->data[j] += half_amp_eps * (Term1_sum + Term2_sum);
-        (*hctilde)->data->data[j] += -I * half_amp_eps * (Term1_sum - Term2_sum);
+        /* We test for hypothetical m=0 modes */
+        if (mprime == 0)
+        {
+            sym = 0;
+        }
+        else
+        {
+            sym = 1;
+        }
+        PhenomInternal_IMRPhenomHMFDAddMode(*hptilde, *hctilde, hlm, pv3HM->inclination, 0., ell, mprime, sym);
+    } else { // precessing case. compute angles and do the twist
+
+        const REAL8 Msec = Mtot_Msun * LAL_MTSUN_SI; /* Total mass in seconds */
+        const REAL8 twopi_Msec = LAL_TWOPI * Msec;
+        REAL8 fHz = 0.;
+
+        COMPLEX16 half_amp_eps;
+
+        COMPLEX16 Term1_sum = 0;
+        COMPLEX16 Term2_sum = 0;
+
+        UNUSED INT4 minus1l = 0; /* (-1)^ell */
+        int ret_abe;
+        int retloop;
+
+        REAL8 alpha = 0.;
+        REAL8 beta = 0.;
+        REAL8 mprime_epsilon = 0.;
+
+        // compute Ylms
+        IMRPhenomPv3HMYlmStruct *ylms = XLALSimIMRPhenomPv3HMComputeYlmElements(pv3HM->inclination, 0, ell);
+        // get non-prec mode
+        COMPLEX16FrequencySeries *hlmD = XLALSphHarmFrequencySeriesGetMode(*hlmsD, ell, mprime);
+        if (!(hlmD))
+            XLAL_ERROR(XLAL_EFUNC);
+
+        IMRPhenomPv3HMAlphaStruct *als = XLALMalloc(sizeof(IMRPhenomPv3HMAlphaStruct));
+        memset(als, 0, sizeof(IMRPhenomPv3HMAlphaStruct));
+
+        IMRPhenomPv3HMWignderStruct *wigs = XLALMalloc(sizeof(IMRPhenomPv3HMWignderStruct));
+        memset(wigs, 0, sizeof(IMRPhenomPv3HMWignderStruct));
+
+        int ret_als;
+        int ret_wigs;
+
+        // frequency loop
+        for (size_t j = 0; j < freqs_seq->length; ++j)
+        {
+            fHz = freqs_seq->data[j]; //for the angles
+            // compute alpha, beta and mprime*epsilon
+            ret_abe = IMRPhenomPv3HM_Compute_a_b_e(&alpha, &beta, &mprime_epsilon, fHz, mprime, twopi_Msec, pv3HM, pAngles);
+            XLAL_CHECK(
+                XLAL_SUCCESS == ret_abe,
+                XLAL_EFUNC,
+                "IMRPhenomPv3HM_Compute_a_b_e failed");
+            /* Precompute wigner-d elements */
+            ret_wigs = XLALSimIMRPhenomPv3HMComputeWignerdElements(&wigs, ell, mprime, -beta);
+            XLAL_CHECK(
+                XLAL_SUCCESS == ret_wigs,
+                XLAL_EFUNC,
+                "XLALSimIMRPhenomPv3HMComputeWignerdElements failed");
+            /* Precompute powers of e^{i m alpha} */
+            ret_als = XLALSimIMRPhenomPv3HMComputeAlphaElements(&als, ell, alpha);
+            XLAL_CHECK(
+                XLAL_SUCCESS == ret_als,
+                XLAL_EFUNC,
+                "XLALSimIMRPhenomPv3HMComputeAlphaElements failed");
+            retloop = IMRPhenomPv3HM_wigner_loop(&Term1_sum, &Term2_sum, ell, mprime, ylms, als, wigs);
+            XLAL_CHECK(
+                XLAL_SUCCESS == retloop,
+                XLAL_EFUNC,
+                "IMRPhenomPv3HM_wigner_loop failed");
+
+            COMPLEX16 hlmD_j = (hlmD->data->data[j]);
+            half_amp_eps = 0.5 * hlmD_j * cexp(-I * mprime_epsilon);
+            (*hptilde)->data->data[j] += half_amp_eps * (Term1_sum + Term2_sum);
+            (*hctilde)->data->data[j] += -I * half_amp_eps * (Term1_sum - Term2_sum);
+        }
+
+        XLALFree(wigs);
+        XLALFree(als);
+        XLALFree(ylms); // allocated in XLALSimIMRPhenomPv3HMComputeYlmElements
     }
-
-    XLALFree(wigs);
-    XLALFree(als);
-    XLALFree(ylms); // allocated in XLALSimIMRPhenomPv3HMComputeYlmElements
 
     return XLAL_SUCCESS;
 }
